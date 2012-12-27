@@ -9,28 +9,33 @@ import org.glassfish.grizzly.http.server.StaticHttpHandler;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.List;
 
 public class Server {
 
+    private static final String LISTENER_NAME = "dnd-http-server-listener";
     private final HttpServer m_httpServer = new HttpServer();
     private final EventBus m_eventBus;
-    private final int m_port;
 
-    public Server(EventBus eventBus, int port) {
+    public Server(EventBus eventBus) {
         m_eventBus = eventBus;
-        m_port = port;
     }
 
-    public Server start() throws IOException {
-        NetworkListener listener = new NetworkListener("dnd-http-server", "0.0.0.0", m_port);
-        listener.getFileCache().setEnabled(false);
-        m_httpServer.addListener(listener);
+    public Server start(int port) throws IOException {
+        addListener(port);
         m_httpServer.start();
         return this;
     }
 
-    public Server addDirectory(List<Path> directories) {
+    public Server changePort(int port) {
+        m_httpServer.removeListener(LISTENER_NAME);
+        addListener(port);
+        m_eventBus.post(new ServerPortChanged(port));
+        return this;
+    }
+
+    public Server addDirectory(Collection<Path> directories) {
         ServerConfiguration configuration = m_httpServer.getServerConfiguration();
 
         for (Path directory : directories) {
@@ -45,5 +50,11 @@ public class Server {
 
     public void stop() {
         m_httpServer.stop();
+    }
+
+    private void addListener(int port) {
+        NetworkListener listener = new NetworkListener(LISTENER_NAME, "0.0.0.0", port);
+        listener.getFileCache().setEnabled(false);
+        m_httpServer.addListener(listener);
     }
 }

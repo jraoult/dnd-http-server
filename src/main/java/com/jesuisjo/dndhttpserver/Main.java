@@ -15,29 +15,39 @@ public class Main {
         final ExecutorService eventBusExecutor = Executors.newSingleThreadExecutor();
         EventBus eventBus = new AsyncEventBus(eventBusExecutor);
 
-        final Server server = new Server(eventBus, 8080);
+        final Server server = new Server(eventBus);
         final Gui gui = new Gui(eventBus);
 
         eventBus.register(new Object() {
             @Subscribe
-            public void onWebRootDirectoriesAdded(WebRootDirectoriesAdded event) {
-                server.addDirectory(event.getDirectories());
+            public void onAddWebRootDirectoriesRequest(AddWebRootDirectoriesRequest request) {
+                server.addDirectory(request.getDirectories());
             }
 
             @Subscribe
-            public void onServerHandlersAdded(final ServerStaticHandlersAdded event) {
-                gui.notifyOfNewWebRoots(event.getDirectories());
+            public void onChangeListeningPortRequest(ChangeListeningPortRequest request) {
+                server.changePort(request.getPort());
             }
 
             @Subscribe
-            public void onQuitApplicationRequested(QuitApplicationRequested event) {
+            public void onQuitApplicationRequest(QuitApplicationRequest request) {
                 gui.dispose();
                 server.stop();
                 eventBusExecutor.shutdown();
             }
+
+            @Subscribe
+            public void onServerHandlersAdded(ServerStaticHandlersAdded event) {
+                gui.notifyOfNewWebRoots(event.getDirectories());
+            }
+
+            @Subscribe
+            public void onServerPortChanged(ServerPortChanged event) {
+                gui.notifyOfNewListeningPort(event.getPort());
+            }
         });
 
-        server.start();
+        server.start(8080);
         gui.start();
     }
 }

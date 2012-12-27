@@ -3,18 +3,24 @@ package com.jesuisjo.dndhttpserver;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
+import com.google.common.base.Predicate;
+import com.google.common.base.Strings;
+import com.google.common.collect.Collections2;
 import com.google.common.eventbus.EventBus;
 
+import javax.annotation.Nullable;
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.TransferHandler;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.WindowConstants;
 import java.awt.AWTException;
 import java.awt.BorderLayout;
@@ -30,6 +36,7 @@ import java.awt.SystemTray;
 import java.awt.TrayIcon;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.UnsupportedFlavorException;
+import java.awt.dnd.InvalidDnDOperationException;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
@@ -39,6 +46,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -46,7 +54,7 @@ import java.util.logging.Logger;
 public class Gui {
 
     private static final String APP_NAME = "DnD Http server";
-    private static final String UPLOAD_ARROW_CHAR = "\uE75B";
+    private static final String UPLOAD_ARROW_CHAR = "\uF0AA";
     private final Logger m_logger = Logger.getLogger(getClass().toString());
     private final EventBus m_eventBus;
     private final Font m_iconFont;
@@ -58,6 +66,12 @@ public class Gui {
 
     public Gui(EventBus eventBus) {
         m_eventBus = eventBus;
+
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
+            m_logger.log(Level.WARNING, "Unable to install the look and feel", e);
+        }
 
         Font iconFont = null;
         try (InputStream fontIs = Thread.currentThread().getContextClassLoader().getResourceAsStream("fontello.ttf")) {
@@ -85,14 +99,23 @@ public class Gui {
                         m_systemTray = SystemTray.getSystemTray();
                         Dimension trayIconSize = m_systemTray.getTrayIconSize();
                         final PopupMenu popupMenu = new PopupMenu(APP_NAME);
+                        final MenuItem changePortItem = new MenuItem("Change listening port");
                         final MenuItem quitItem = new MenuItem("Quit " + APP_NAME);
 
+                        changePortItem.addActionListener(new ActionListener() {
+                            @Override
+                            public void actionPerformed(ActionEvent e) {
+                                viewPortSettingScreen();
+                            }
+                        });
                         quitItem.addActionListener(new ActionListener() {
                             @Override
                             public void actionPerformed(ActionEvent e) {
-                                m_eventBus.post(new QuitApplicationRequested());
+                                m_eventBus.post(new QuitApplicationRequest());
                             }
                         });
+
+                        popupMenu.add(changePortItem);
                         popupMenu.add(quitItem);
 
                         // looks better that way instead of using setImageAutoSize
@@ -144,18 +167,27 @@ public class Gui {
 
                                     @Override
                                     public boolean canImport(TransferSupport support) {
-                                        return support.isDataFlavorSupported(DataFlavor.javaFileListFlavor);
+                                        try {
+                                            return support.isDataFlavorSupported(DataFlavor.javaFileListFlavor) && !filterDirectories(support).isEmpty();
+                                        } catch (InvalidDnDOperationException e) {
+                                            // implementation bug, on last call before drop, it is not possible to access the data
+                                            // see http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6759788
+                                            return true;
+                                        } catch (UnsupportedFlavorException | IOException e) {
+                                            return false;
+                                        }
                                     }
 
                                     @Override
                                     public boolean importData(TransferSupport support) {
                                         try {
-                                            List<File> files = (List<File>) support.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
-                                            if (files.isEmpty()) {
+                                            Collection<File> directories = filterDirectories(support);
+
+                                            if (directories.isEmpty()) {
                                                 return false;
                                             }
 
-                                            m_eventBus.post(new WebRootDirectoriesAdded(Lists.transform(files, new Function<File, Path>() {
+                                            m_eventBus.post(new AddWebRootDirectoriesRequest(Collections2.transform(directories, new Function<File, Path>() {
                                                 @Override
                                                 public Path apply(@javax.annotation.Nullable File file) {
                                                     return file.toPath();
@@ -169,7 +201,14 @@ public class Gui {
                                         }
                                     }
 
-
+                                    private Collection<File> filterDirectories(TransferSupport support) throws UnsupportedFlavorException, IOException {
+                                        return Collections2.filter((List<File>) support.getTransferable().getTransferData(DataFlavor.javaFileListFlavor), new Predicate<File>() {
+                                            @Override
+                                            public boolean apply(@Nullable File file) {
+                                                return file.isDirectory();
+                                            }
+                                        });
+                                    }
                                 });
 
                 JLabel infoLabel = new JLabel("Drop web root directories here");
@@ -197,15 +236,21 @@ public class Gui {
         });
     }
 
-    public void notifyOfNewWebRoots(final List<Path> directories) {
+    public void notifyOfNewWebRoots(final Collection<Path> directories) {
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                if (m_trayIcon != null) {
-                    m_trayIcon.displayMessage(null, "New web root directories registered :\n"
-                            + Joiner.on("\n").join(Lists.transform(directories, Functions.toStringFunction())),
-                            TrayIcon.MessageType.INFO);
-                }
+                displayInfoMessage("New web root directories registered :\n"
+                        + Joiner.on("\n").join(Collections2.transform(directories, Functions.toStringFunction())));
+            }
+        });
+    }
+
+    public void notifyOfNewListeningPort(final int port) {
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                displayInfoMessage("The server is now listening on port " + port);
             }
         });
     }
@@ -219,4 +264,22 @@ public class Gui {
             }
         });
     }
+
+    private void displayInfoMessage(String message) {
+        if (m_trayIcon != null) {
+            m_trayIcon.displayMessage(null, message, TrayIcon.MessageType.INFO);
+        }
+    }
+
+    private void viewPortSettingScreen() {
+        String portStr = JOptionPane.showInputDialog("Please enter a new port number");
+        if (!Strings.isNullOrEmpty(portStr)) {
+            try {
+                m_eventBus.post(new ChangeListeningPortRequest(Integer.parseInt(portStr)));
+            } catch (NumberFormatException e) {
+
+            }
+        }
+    }
+
 }
