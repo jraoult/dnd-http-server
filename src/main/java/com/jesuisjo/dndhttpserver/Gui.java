@@ -168,13 +168,11 @@ public class Gui {
                                     @Override
                                     public boolean canImport(TransferSupport support) {
                                         try {
-                                            return support.isDataFlavorSupported(DataFlavor.javaFileListFlavor) && !filterDirectories(support).isEmpty();
+                                            return support.isDataFlavorSupported(DataFlavor.javaFileListFlavor);
                                         } catch (InvalidDnDOperationException e) {
                                             // implementation bug, on last call before drop, it is not possible to access the data
                                             // see http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6759788
                                             return true;
-                                        } catch (UnsupportedFlavorException | IOException e) {
-                                            return false;
                                         }
                                     }
 
