@@ -10,7 +10,6 @@ import org.glassfish.grizzly.http.server.StaticHttpHandler;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.List;
 
 public class Server {
 
@@ -53,7 +52,7 @@ public class Server {
     }
 
     private void addListener(int port) {
-        NetworkListener listener = new NetworkListener(LISTENER_NAME, "0.0.0.0", port);
+        NetworkListener listener = new NetworkListener(LISTENER_NAME, NetworkListener.DEFAULT_NETWORK_HOST, port);
         listener.getFileCache().setEnabled(false);
         m_httpServer.addListener(listener);
     }
