@@ -155,7 +155,7 @@ public class Gui {
                 });
 
                 JPanel droppingPanel = new JPanel(new BorderLayout());
-                droppingPanel.setBorder(BorderFactory.createDashedBorder(Color.LIGHT_GRAY, 6f, 3f, 3f, false));
+                droppingPanel.setBorder(BorderFactory.createDashedBorder(Color.GRAY, 6f, 3f, 3f, false));
                 droppingPanel.setTransferHandler(
                         new
 
@@ -213,14 +213,14 @@ public class Gui {
                 infoLabel.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
                 infoLabel.setHorizontalAlignment(SwingConstants.CENTER);
                 infoLabel.setFont(infoLabel.getFont().deriveFont(16f));
-                infoLabel.setForeground(Color.LIGHT_GRAY);
+                infoLabel.setForeground(Color.GRAY);
 
                 droppingPanel.add(infoLabel, BorderLayout.NORTH);
 
                 if (m_iconFont != null) {
                     JLabel iconLabel = new JLabel();
                     iconLabel.setFont(m_iconFont.deriveFont(60f));
-                    iconLabel.setForeground(Color.LIGHT_GRAY);
+                    iconLabel.setForeground(Color.GRAY);
                     iconLabel.setHorizontalAlignment(SwingConstants.CENTER);
                     iconLabel.setText(UPLOAD_ARROW_CHAR);
 
