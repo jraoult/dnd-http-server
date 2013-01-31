@@ -21,16 +21,26 @@ public class Server {
         m_eventBus = eventBus;
     }
 
-    public Server start(int port) throws IOException {
-        addListener(port);
-        m_httpServer.start();
+    public Server start(int port) {
+        m_httpServer.addListener(buildListener(port));
+        try {
+            m_httpServer.start();
+        } catch (IOException e) {
+            m_eventBus.post(new ServerStartFailed(port, e));
+        }
         return this;
     }
 
     public Server changePort(int port) {
+        m_httpServer.stop();
         m_httpServer.removeListener(LISTENER_NAME);
-        addListener(port);
-        m_eventBus.post(new ServerPortChanged(port));
+        m_httpServer.addListener(buildListener(port));
+        try {
+            m_httpServer.start();
+            m_eventBus.post(new ServerPortChanged(port));
+        } catch (IOException e) {
+            m_eventBus.post(new ServerPortChangeFailed(port, e));
+        }
         return this;
     }
 
@@ -51,9 +61,9 @@ public class Server {
         m_httpServer.stop();
     }
 
-    private void addListener(int port) {
+    private NetworkListener buildListener(int port) {
         NetworkListener listener = new NetworkListener(LISTENER_NAME, NetworkListener.DEFAULT_NETWORK_HOST, port);
         listener.getFileCache().setEnabled(false);
-        m_httpServer.addListener(listener);
+        return listener;
     }
 }

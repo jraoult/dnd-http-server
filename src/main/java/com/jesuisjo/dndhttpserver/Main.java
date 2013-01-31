@@ -45,9 +45,19 @@ public class Main {
             public void onServerPortChanged(ServerPortChanged event) {
                 gui.notifyOfNewListeningPort(event.getPort());
             }
+
+            @Subscribe
+            public void onServerPortChangeFailed(ServerPortChangeFailed event) {
+                gui.notifyOfUnderlyingServerError(event.getPort(), event.getCause());
+            }
+
+            @Subscribe
+            public void onServerStartFailed(ServerStartFailed event) {
+                gui.notifyOfUnderlyingServerError(event.getPort(), event.getCause());
+            }
         });
 
-        server.start(8080);
         gui.start();
+        server.start(8080);
     }
 }

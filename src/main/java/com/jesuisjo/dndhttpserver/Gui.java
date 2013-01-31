@@ -253,6 +253,15 @@ public class Gui {
         });
     }
 
+    public void notifyOfUnderlyingServerError(final int port, final Exception cause) {
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                displayInfoMessage(String.format("The server was not able to (re) start on port %d because of en exception : %s", port, cause.getMessage()));
+            }
+        });
+    }
+
     public void dispose() {
         SwingUtilities.invokeLater(new Runnable() {
             @Override
@@ -279,5 +288,4 @@ public class Gui {
             }
         }
     }
-
 }
