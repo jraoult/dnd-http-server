@@ -21,7 +21,12 @@ public class Main {
         eventBus.register(new Object() {
             @Subscribe
             public void onAddWebRootDirectoriesRequest(AddWebRootDirectoriesRequest request) {
-                server.addDirectory(request.getDirectories());
+                server.addDirectories(request.getDirectories());
+            }
+
+            @Subscribe
+            public void onRemoveWebRootDirectoriesRequest(RemoveWebRootDirectoriesRequest request) {
+                server.removeDirectories(request.getDirectories());
             }
 
             @Subscribe
@@ -38,7 +43,14 @@ public class Main {
 
             @Subscribe
             public void onServerHandlersAdded(ServerStaticHandlersAdded event) {
+                gui.addRemoveHandlerButtons(event.getDirectories());
                 gui.notifyOfNewWebRoots(event.getDirectories());
+            }
+
+            @Subscribe
+            public void onServerHandlersRemoved(ServerStaticHandlersRemoved event) {
+                gui.removeRemoveHandlerButtons(event.getDirectories());
+                gui.notifyOfRemovedWebRoots(event.getDirectories());
             }
 
             @Subscribe

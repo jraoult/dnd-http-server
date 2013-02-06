@@ -6,6 +6,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.eventbus.EventBus;
 
 import javax.annotation.Nullable;
@@ -47,7 +48,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -59,10 +63,14 @@ public class Gui {
     private final EventBus m_eventBus;
     private final Font m_iconFont;
     private final BufferedImage m_appIcon;
+
     // all the following variables should only be accessed by the GUI thread
     private JFrame m_mainFrame;
     private SystemTray m_systemTray;
     private TrayIcon m_trayIcon;
+    private PopupMenu m_popupMenu;
+    private Map<Path, MenuItem> m_menuItemByPath = new HashMap<>();
+    private MenuItem m_noDirectoriesRegisteredMenuItem;
 
     public Gui(EventBus eventBus) {
         m_eventBus = eventBus;
@@ -97,8 +105,11 @@ public class Gui {
                 if (SystemTray.isSupported()) {
                     try {
                         m_systemTray = SystemTray.getSystemTray();
-                        Dimension trayIconSize = m_systemTray.getTrayIconSize();
-                        final PopupMenu popupMenu = new PopupMenu(APP_NAME);
+                        m_popupMenu = new PopupMenu(APP_NAME);
+                        // the only instance used through the GUI
+                        m_noDirectoriesRegisteredMenuItem = new MenuItem("No web root registered yet");
+                        m_noDirectoriesRegisteredMenuItem.setEnabled(false);
+
                         final MenuItem changePortItem = new MenuItem("Change listening port");
                         final MenuItem quitItem = new MenuItem("Quit " + APP_NAME);
 
@@ -115,12 +126,15 @@ public class Gui {
                             }
                         });
 
-                        popupMenu.add(changePortItem);
-                        popupMenu.add(quitItem);
+                        m_popupMenu.add(changePortItem);
+                        m_popupMenu.add(quitItem);
+                        m_popupMenu.addSeparator();
+                        m_popupMenu.add(m_noDirectoriesRegisteredMenuItem);
 
                         // looks better that way instead of using setImageAutoSize
+                        Dimension trayIconSize = m_systemTray.getTrayIconSize();
                         Image scaledAppIcon = m_appIcon.getScaledInstance(trayIconSize.width, trayIconSize.height, Image.SCALE_SMOOTH);
-                        TrayIcon trayIcon = new TrayIcon(scaledAppIcon, APP_NAME, popupMenu);
+                        TrayIcon trayIcon = new TrayIcon(scaledAppIcon, APP_NAME, m_popupMenu);
                         trayIcon.addActionListener(new ActionListener() {
                             @Override
                             public void actionPerformed(ActionEvent e) {
@@ -139,7 +153,7 @@ public class Gui {
                 m_mainFrame = new JFrame(APP_NAME);
                 m_mainFrame.setIconImage(m_appIcon);
                 m_mainFrame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
-                m_mainFrame.setPreferredSize(new Dimension(300, 300));
+                m_mainFrame.setPreferredSize(new Dimension(300, 150));
                 m_mainFrame.getRootPane().setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
 
                 m_mainFrame.addWindowListener(new WindowAdapter() {
@@ -234,11 +248,61 @@ public class Gui {
         });
     }
 
+    public void addRemoveHandlerButtons(final ImmutableCollection<Path> directories) {
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                for (final Path directory : directories) {
+                    MenuItem menuItem = new MenuItem("Unregister " + directory.toString());
+                    menuItem.addActionListener(new ActionListener() {
+                        @Override
+                        public void actionPerformed(ActionEvent e) {
+                            m_eventBus.post(new RemoveWebRootDirectoriesRequest(Collections.singleton(directory)));
+                        }
+                    });
+                    m_menuItemByPath.put(directory, menuItem);
+                    m_popupMenu.add(menuItem);
+                }
+
+                // remove the empty message from the menu
+                if (!m_menuItemByPath.isEmpty()) {
+                    m_popupMenu.remove(m_noDirectoriesRegisteredMenuItem);
+                }
+            }
+        });
+    }
+
+    public void removeRemoveHandlerButtons(final ImmutableCollection<Path> directories) {
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                for (Path directory : directories) {
+                    m_popupMenu.remove(m_menuItemByPath.remove(directory));
+                }
+
+                // add the empty message if there is no mapping anymore
+                if (m_menuItemByPath.isEmpty()) {
+                    m_popupMenu.add(m_noDirectoriesRegisteredMenuItem);
+                }
+            }
+        });
+    }
+
     public void notifyOfNewWebRoots(final Collection<Path> directories) {
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
                 displayInfoMessage("New web root directories registered :\n"
+                        + Joiner.on("\n").join(Collections2.transform(directories, Functions.toStringFunction())));
+            }
+        });
+    }
+
+    public void notifyOfRemovedWebRoots(final Collection<Path> directories) {
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                displayInfoMessage("Web root directories unregistered :\n"
                         + Joiner.on("\n").join(Collections2.transform(directories, Functions.toStringFunction())));
             }
         });
