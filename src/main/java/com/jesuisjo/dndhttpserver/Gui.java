@@ -8,6 +8,8 @@ import com.google.common.base.Strings;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.eventbus.EventBus;
+import com.jesuisjo.dndhttpserver.gui.GuiPlatformSpecificHandler;
+import com.jesuisjo.dndhttpserver.gui.OsXGuiHandler;
 
 import javax.annotation.Nullable;
 import javax.imageio.ImageIO;
@@ -22,26 +24,18 @@ import javax.swing.SwingUtilities;
 import javax.swing.TransferHandler;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
-import javax.swing.WindowConstants;
-import java.awt.AWTException;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.FontFormatException;
-import java.awt.Frame;
-import java.awt.Image;
 import java.awt.MenuItem;
 import java.awt.PopupMenu;
-import java.awt.SystemTray;
-import java.awt.TrayIcon;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.dnd.InvalidDnDOperationException;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -66,11 +60,11 @@ public class Gui {
 
     // all the following variables should only be accessed by the GUI thread
     private JFrame m_mainFrame;
-    private SystemTray m_systemTray;
-    private TrayIcon m_trayIcon;
     private PopupMenu m_popupMenu;
-    private Map<Path, MenuItem> m_menuItemByPath = new HashMap<>();
     private MenuItem m_noDirectoriesRegisteredMenuItem;
+    private GuiPlatformSpecificHandler m_guiHandler;
+
+    private Map<Path, MenuItem> m_menuItemByPath = new HashMap<>();
 
     public Gui(EventBus eventBus) {
         m_eventBus = eventBus;
@@ -102,71 +96,48 @@ public class Gui {
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                if (SystemTray.isSupported()) {
-                    try {
-                        m_systemTray = SystemTray.getSystemTray();
-                        m_popupMenu = new PopupMenu(APP_NAME);
-                        // the only instance used through the GUI
-                        m_noDirectoriesRegisteredMenuItem = new MenuItem("No web root registered yet");
-                        m_noDirectoriesRegisteredMenuItem.setEnabled(false);
-
-                        final MenuItem changePortItem = new MenuItem("Change listening port");
-                        final MenuItem quitItem = new MenuItem("Quit " + APP_NAME);
-
-                        changePortItem.addActionListener(new ActionListener() {
-                            @Override
-                            public void actionPerformed(ActionEvent e) {
-                                viewPortSettingScreen();
-                            }
-                        });
-                        quitItem.addActionListener(new ActionListener() {
-                            @Override
-                            public void actionPerformed(ActionEvent e) {
-                                m_eventBus.post(new QuitApplicationRequest());
-                            }
-                        });
-
-                        m_popupMenu.add(changePortItem);
-                        m_popupMenu.add(quitItem);
-                        m_popupMenu.addSeparator();
-                        m_popupMenu.add(m_noDirectoriesRegisteredMenuItem);
-
-                        // looks better that way instead of using setImageAutoSize
-                        Dimension trayIconSize = m_systemTray.getTrayIconSize();
-                        Image scaledAppIcon = m_appIcon.getScaledInstance(trayIconSize.width, trayIconSize.height, Image.SCALE_SMOOTH);
-                        TrayIcon trayIcon = new TrayIcon(scaledAppIcon, APP_NAME, m_popupMenu);
-                        trayIcon.addActionListener(new ActionListener() {
-                            @Override
-                            public void actionPerformed(ActionEvent e) {
-                                m_mainFrame.setVisible(true);
-                                m_mainFrame.setExtendedState(Frame.NORMAL);
-                            }
-                        });
-
-                        m_systemTray.add(trayIcon);
-                        m_trayIcon = trayIcon;
-                    } catch (AWTException e) {
-                        m_logger.log(Level.SEVERE, "Can not install tray", e);
-                    }
-                }
-
-                m_mainFrame = new JFrame(APP_NAME);
-                m_mainFrame.setIconImage(m_appIcon);
-                m_mainFrame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
-                m_mainFrame.setPreferredSize(new Dimension(300, 150));
-                m_mainFrame.getRootPane().setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
-
-                m_mainFrame.addWindowListener(new WindowAdapter() {
+                final Runnable onQuitAction = new Runnable() {
                     @Override
-                    public void windowClosing(WindowEvent e) {
-                        m_mainFrame.setVisible(false);
+                    public void run() {
+                        m_eventBus.post(new QuitApplicationRequest());
                     }
+                };
 
+                // the only instance used through the GUI
+                m_noDirectoriesRegisteredMenuItem = new MenuItem("No web root registered yet");
+                m_noDirectoriesRegisteredMenuItem.setEnabled(false);
+
+                final MenuItem changePortItem = new MenuItem("Change listening port");
+                final MenuItem quitItem = new MenuItem("Quit " + APP_NAME);
+
+                changePortItem.addActionListener(new ActionListener() {
                     @Override
-                    public void windowIconified(WindowEvent e) {
-                        m_mainFrame.setVisible(false);
+                    public void actionPerformed(ActionEvent e) {
+                        viewPortSettingScreen();
                     }
                 });
+                quitItem.addActionListener(new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        onQuitAction.run();
+                    }
+                });
+
+                m_popupMenu = new PopupMenu(APP_NAME);
+                m_popupMenu.add(changePortItem);
+                m_popupMenu.add(quitItem);
+                m_popupMenu.addSeparator();
+                m_popupMenu.add(m_noDirectoriesRegisteredMenuItem);
+
+                m_mainFrame = new JFrame(APP_NAME);
+                // m_guiHandler = new DefaultGuiHandler(m_mainFrame, m_trayIcon);
+                m_guiHandler = new OsXGuiHandler(m_mainFrame);
+                m_guiHandler.setAppIcon(m_appIcon);
+                m_guiHandler.setupWindowBehavior(onQuitAction);
+                m_guiHandler.installMenu(m_popupMenu);
+
+                m_mainFrame.setPreferredSize(new Dimension(300, 150));
+                m_mainFrame.getRootPane().setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
 
                 JPanel droppingPanel = new JPanel(new BorderLayout());
                 droppingPanel.setBorder(BorderFactory.createDashedBorder(Color.GRAY, 6f, 3f, 3f, false));
@@ -321,7 +292,7 @@ public class Gui {
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                displayInfoMessage(String.format("The server was not able to (re) start on port %d because of en exception : %s", port, cause.getMessage()));
+                displayErrorMessage(String.format("The server was not able to (re) start on port %d because of en exception : %s", port, cause.getMessage()));
             }
         });
     }
@@ -331,15 +302,17 @@ public class Gui {
             @Override
             public void run() {
                 m_mainFrame.dispose();
-                m_systemTray.remove(m_trayIcon);
+                m_guiHandler.dispose();
             }
         });
     }
 
     private void displayInfoMessage(String message) {
-        if (m_trayIcon != null) {
-            m_trayIcon.displayMessage(null, message, TrayIcon.MessageType.INFO);
-        }
+        m_guiHandler.displayInfoNotification(null, message);
+    }
+
+    private void displayErrorMessage(String message) {
+        m_guiHandler.displayErrorNotification(null, message);
     }
 
     private void viewPortSettingScreen() {
