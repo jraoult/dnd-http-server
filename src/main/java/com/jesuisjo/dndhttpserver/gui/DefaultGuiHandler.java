@@ -6,6 +6,7 @@ import java.awt.AWTException;
 import java.awt.Dimension;
 import java.awt.Frame;
 import java.awt.Image;
+import java.awt.MenuItem;
 import java.awt.PopupMenu;
 import java.awt.SystemTray;
 import java.awt.TrayIcon;
@@ -14,24 +15,47 @@ import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
-public class DefaultGuiHandler implements GuiPlatformSpecificHandler {
+public class DefaultGuiHandler extends AbstractGuiHandler {
 
     private final JFrame m_mainFrame;
-    private final SystemTray m_systemTray;
     private final String m_appName;
     private final Image m_appIcon;
+    private final SystemTray m_systemTray;
+    private final Runnable m_onQuitAction;
 
     private TrayIcon m_trayIcon;
 
-    public DefaultGuiHandler(JFrame mainFrame, String appName, Image appIcon) {
+    public DefaultGuiHandler(JFrame mainFrame, String appName, Image appIcon, Runnable onViewPortSettingScreen, Runnable onQuitAction) {
+        super(onViewPortSettingScreen, new PopupMenu(appName));
+
         m_mainFrame = mainFrame;
-        m_systemTray = SystemTray.isSupported() ? SystemTray.getSystemTray() : null;
         m_appName = appName;
         m_appIcon = appIcon;
+        m_onQuitAction = onQuitAction;
+        m_systemTray = SystemTray.isSupported() ? SystemTray.getSystemTray() : null;
     }
 
     @Override
-    public void installMenu(PopupMenu popupMenu) {
+    public void installAppIcon(Image image) {
+        m_mainFrame.setIconImage(image);
+    }
+
+    @Override
+    public void installMenu() {
+        MenuItem quitItem = new MenuItem("Quit " + m_appName);
+        quitItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                m_onQuitAction.run();
+            }
+        });
+
+        PopupMenu popupMenu = getPopupMenu();
+        popupMenu.add(buildChangePortItem());
+        popupMenu.add(quitItem);
+        popupMenu.addSeparator();
+        popupMenu.add(NO_DIRECTORIES_REGISTERED_MENU_ITEM);
+
         if (m_systemTray != null) {
             // looks better that way instead of using setImageAutoSize
             Dimension trayIconSize = m_systemTray.getTrayIconSize();
@@ -69,17 +93,7 @@ public class DefaultGuiHandler implements GuiPlatformSpecificHandler {
     }
 
     @Override
-    public void setAppIcon(Image image) {
-        m_mainFrame.setIconImage(image);
-    }
-
-    @Override
-    public void dispose() {
-        m_systemTray.remove(m_trayIcon);
-    }
-
-    @Override
-    public void setupWindowBehavior(Runnable onQuitAction) {
+    public void installWindowBehavior() {
         m_mainFrame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
         m_mainFrame.addWindowListener(new WindowAdapter() {
             @Override
@@ -92,5 +106,10 @@ public class DefaultGuiHandler implements GuiPlatformSpecificHandler {
                 m_mainFrame.setVisible(false);
             }
         });
+    }
+
+    @Override
+    public void dispose() {
+        m_systemTray.remove(m_trayIcon);
     }
 }

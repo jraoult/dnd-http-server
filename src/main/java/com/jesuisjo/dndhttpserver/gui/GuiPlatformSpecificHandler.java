@@ -1,15 +1,23 @@
 package com.jesuisjo.dndhttpserver.gui;
 
 import java.awt.Image;
-import java.awt.PopupMenu;
+import java.awt.MenuItem;
 
 public interface GuiPlatformSpecificHandler {
 
-    void setAppIcon(Image image);
+    void installAppIcon(Image image);
 
-    void installMenu(PopupMenu popupMenu);
+    void installMenu();
 
-    void setupWindowBehavior(Runnable onQuitAction);
+    void addRemoveHandlerMenuItem(MenuItem menuItem);
+
+    void removeRemoveHandlerMenuItem(MenuItem menuItem);
+
+    void showNoHandlerMenuItem();
+
+    void hideNoHandlerMenuItem();
+
+    void installWindowBehavior();
 
     void displayInfoNotification(String caption, String message);
 

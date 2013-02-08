@@ -30,7 +30,6 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.FontFormatException;
 import java.awt.MenuItem;
-import java.awt.PopupMenu;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.dnd.InvalidDnDOperationException;
@@ -60,8 +59,8 @@ public class Gui {
 
     // all the following variables should only be accessed by the GUI thread
     private JFrame m_mainFrame;
-    private PopupMenu m_popupMenu;
-    private MenuItem m_noDirectoriesRegisteredMenuItem;
+    //    private PopupMenu m_popupMenu;
+    //private MenuItem m_noDirectoriesRegisteredMenuItem;
     private GuiPlatformSpecificHandler m_guiHandler;
 
     private Map<Path, MenuItem> m_menuItemByPath = new HashMap<>();
@@ -96,6 +95,12 @@ public class Gui {
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
+                Runnable onViewPortSettingScreen = new Runnable() {
+                    @Override
+                    public void run() {
+                        viewPortSettingScreen();
+                    }
+                };
                 final Runnable onQuitAction = new Runnable() {
                     @Override
                     public void run() {
@@ -103,38 +108,12 @@ public class Gui {
                     }
                 };
 
-                // the only instance used through the GUI
-                m_noDirectoriesRegisteredMenuItem = new MenuItem("No web root registered yet");
-                m_noDirectoriesRegisteredMenuItem.setEnabled(false);
-
-                final MenuItem changePortItem = new MenuItem("Change listening port");
-                final MenuItem quitItem = new MenuItem("Quit " + APP_NAME);
-
-                changePortItem.addActionListener(new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        viewPortSettingScreen();
-                    }
-                });
-                quitItem.addActionListener(new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        onQuitAction.run();
-                    }
-                });
-
-                m_popupMenu = new PopupMenu(APP_NAME);
-                m_popupMenu.add(changePortItem);
-                m_popupMenu.add(quitItem);
-                m_popupMenu.addSeparator();
-                m_popupMenu.add(m_noDirectoriesRegisteredMenuItem);
-
                 m_mainFrame = new JFrame(APP_NAME);
                 // m_guiHandler = new DefaultGuiHandler(m_mainFrame, m_trayIcon);
-                m_guiHandler = new OsXGuiHandler(m_mainFrame);
-                m_guiHandler.setAppIcon(m_appIcon);
-                m_guiHandler.setupWindowBehavior(onQuitAction);
-                m_guiHandler.installMenu(m_popupMenu);
+                m_guiHandler = new OsXGuiHandler(m_mainFrame, onViewPortSettingScreen, onQuitAction);
+                m_guiHandler.installAppIcon(m_appIcon);
+                m_guiHandler.installWindowBehavior();
+                m_guiHandler.installMenu();
 
                 m_mainFrame.setPreferredSize(new Dimension(300, 150));
                 m_mainFrame.getRootPane().setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
@@ -232,12 +211,12 @@ public class Gui {
                         }
                     });
                     m_menuItemByPath.put(directory, menuItem);
-                    m_popupMenu.add(menuItem);
+                    m_guiHandler.addRemoveHandlerMenuItem(menuItem);
                 }
 
                 // remove the empty message from the menu
                 if (!m_menuItemByPath.isEmpty()) {
-                    m_popupMenu.remove(m_noDirectoriesRegisteredMenuItem);
+                    m_guiHandler.hideNoHandlerMenuItem();
                 }
             }
         });
@@ -248,12 +227,12 @@ public class Gui {
             @Override
             public void run() {
                 for (Path directory : directories) {
-                    m_popupMenu.remove(m_menuItemByPath.remove(directory));
+                    m_guiHandler.removeRemoveHandlerMenuItem(m_menuItemByPath.remove(directory));
                 }
 
                 // add the empty message if there is no mapping anymore
                 if (m_menuItemByPath.isEmpty()) {
-                    m_popupMenu.add(m_noDirectoriesRegisteredMenuItem);
+                    m_guiHandler.showNoHandlerMenuItem();
                 }
             }
         });

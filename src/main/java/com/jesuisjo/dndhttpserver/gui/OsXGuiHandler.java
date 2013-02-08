@@ -10,22 +10,25 @@ import javax.swing.JFrame;
 import java.awt.Image;
 import java.awt.PopupMenu;
 
-public class OsXGuiHandler implements GuiPlatformSpecificHandler {
+public class OsXGuiHandler extends AbstractGuiHandler {
 
     private final Application m_application = Application.getApplication();
     private final JFrame m_mainFrame;
+    private final Runnable m_onQuitAction;
 
-    public OsXGuiHandler(JFrame mainFrame) {
+    public OsXGuiHandler(JFrame mainFrame, Runnable onViewPortSettingScreen, Runnable onQuitAction) {
+        super(onViewPortSettingScreen, new PopupMenu());
         m_mainFrame = mainFrame;
+        m_onQuitAction = onQuitAction;
     }
 
     @Override
-    public void setAppIcon(Image image) {
+    public void installAppIcon(Image image) {
         m_application.setDockIconImage(image);
     }
 
     @Override
-    public void setupWindowBehavior(final Runnable onQuitAction) {
+    public void installWindowBehavior() {
         m_application.addAppEventListener(new AppReOpenedListener() {
             @Override
             public void appReOpened(AppEvent.AppReOpenedEvent appReOpenedEvent) {
@@ -36,14 +39,18 @@ public class OsXGuiHandler implements GuiPlatformSpecificHandler {
         m_application.setQuitHandler(new QuitHandler() {
             @Override
             public void handleQuitRequestWith(AppEvent.QuitEvent quitEvent, QuitResponse quitResponse) {
-                onQuitAction.run();
+                m_onQuitAction.run();
                 quitResponse.performQuit();
             }
         });
     }
 
     @Override
-    public void installMenu(PopupMenu popupMenu) {
+    public void installMenu() {
+        PopupMenu popupMenu = getPopupMenu();
+        popupMenu.add(buildChangePortItem());
+        popupMenu.addSeparator();
+        popupMenu.add(NO_DIRECTORIES_REGISTERED_MENU_ITEM);
         m_application.setDockMenu(popupMenu);
     }
 
