@@ -8,6 +8,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.eventbus.EventBus;
+import com.jesuisjo.dndhttpserver.gui.DefaultGuiHandler;
 import com.jesuisjo.dndhttpserver.gui.GuiPlatformSpecificHandler;
 import com.jesuisjo.dndhttpserver.gui.OsXGuiHandler;
 
@@ -109,8 +110,15 @@ public class Gui {
                 };
 
                 m_mainFrame = new JFrame(APP_NAME);
-                // m_guiHandler = new DefaultGuiHandler(m_mainFrame, m_trayIcon);
-                m_guiHandler = new OsXGuiHandler(m_mainFrame, onViewPortSettingScreen, onQuitAction);
+
+                try {
+                    // is the apple special extension available ?
+                    Class.forName("com.apple.eawt.Application");
+                    m_guiHandler = new OsXGuiHandler(m_mainFrame, onViewPortSettingScreen, onQuitAction);
+                } catch (ClassNotFoundException e) {
+                    m_guiHandler = new DefaultGuiHandler(m_mainFrame, APP_NAME, m_appIcon, onViewPortSettingScreen, onQuitAction);
+                }
+
                 m_guiHandler.installAppIcon(m_appIcon);
                 m_guiHandler.installWindowBehavior();
                 m_guiHandler.installMenu();
