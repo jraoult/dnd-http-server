@@ -18,8 +18,10 @@ import javax.swing.BorderFactory;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JLayeredPane;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JTextArea;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.TransferHandler;
@@ -36,6 +38,8 @@ import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.dnd.InvalidDnDOperationException;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -53,15 +57,15 @@ public class Gui {
 
     private static final String APP_NAME = "DnD Http server";
     private static final String UPLOAD_ARROW_CHAR = "\uF0AA";
+
     private final Logger m_logger = Logger.getLogger(getClass().toString());
+
     private final EventBus m_eventBus;
     private final Font m_iconFont;
     private final BufferedImage m_appIcon;
 
     // all the following variables should only be accessed by the GUI thread
     private JFrame m_mainFrame;
-    //    private PopupMenu m_popupMenu;
-    //private MenuItem m_noDirectoriesRegisteredMenuItem;
     private GuiPlatformSpecificHandler m_guiHandler;
 
     private Map<Path, MenuItem> m_menuItemByPath = new HashMap<>();
@@ -96,7 +100,7 @@ public class Gui {
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                Runnable onViewPortSettingScreen = new Runnable() {
+                Runnable viewPortSettingScreenCommand = new Runnable() {
                     @Override
                     public void run() {
                         viewPortSettingScreen();
@@ -112,11 +116,11 @@ public class Gui {
                 m_mainFrame = new JFrame(APP_NAME);
 
                 try {
-                    // is the apple special extension available ?
+                    // is the apple extension available ?
                     Class.forName("com.apple.eawt.Application");
-                    m_guiHandler = new OsXGuiHandler(m_mainFrame, onViewPortSettingScreen, onQuitAction);
+                    m_guiHandler = new OsXGuiHandler(m_mainFrame, viewPortSettingScreenCommand, onQuitAction);
                 } catch (ClassNotFoundException e) {
-                    m_guiHandler = new DefaultGuiHandler(m_mainFrame, APP_NAME, m_appIcon, onViewPortSettingScreen, onQuitAction);
+                    m_guiHandler = new DefaultGuiHandler(m_mainFrame, APP_NAME, m_appIcon, viewPortSettingScreenCommand, onQuitAction);
                 }
 
                 m_guiHandler.installAppIcon(m_appIcon);
@@ -124,62 +128,59 @@ public class Gui {
                 m_guiHandler.installMenu();
 
                 m_mainFrame.setPreferredSize(new Dimension(300, 150));
-                m_mainFrame.getRootPane().setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
 
                 JPanel droppingPanel = new JPanel(new BorderLayout());
-                droppingPanel.setBorder(BorderFactory.createDashedBorder(Color.GRAY, 6f, 3f, 3f, false));
+                droppingPanel.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6), BorderFactory.createDashedBorder(Color.GRAY, 6f, 3f, 3f, false)));
                 droppingPanel.setTransferHandler(
-                        new
+                        new TransferHandler() {
+                            @Override
+                            public int getSourceActions(JComponent c) {
+                                return COPY_OR_MOVE;
+                            }
 
-                                TransferHandler() {
-                                    @Override
-                                    public int getSourceActions(JComponent c) {
-                                        return COPY_OR_MOVE;
+                            @Override
+                            public boolean canImport(TransferSupport support) {
+                                try {
+                                    return support.isDataFlavorSupported(DataFlavor.javaFileListFlavor);
+                                } catch (InvalidDnDOperationException e) {
+                                    // implementation bug, on last call before drop, it is not possible to access the data
+                                    // see http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6759788
+                                    return true;
+                                }
+                            }
+
+                            @Override
+                            public boolean importData(TransferSupport support) {
+                                try {
+                                    Collection<File> directories = filterDirectories(support);
+
+                                    if (directories.isEmpty()) {
+                                        return false;
                                     }
 
-                                    @Override
-                                    public boolean canImport(TransferSupport support) {
-                                        try {
-                                            return support.isDataFlavorSupported(DataFlavor.javaFileListFlavor);
-                                        } catch (InvalidDnDOperationException e) {
-                                            // implementation bug, on last call before drop, it is not possible to access the data
-                                            // see http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6759788
-                                            return true;
+                                    m_eventBus.post(new AddWebRootDirectoriesRequest(Collections2.transform(directories, new Function<File, Path>() {
+                                        @Override
+                                        public Path apply(@javax.annotation.Nullable File file) {
+                                            return file.toPath();
                                         }
-                                    }
+                                    })));
 
+                                    return true;
+                                } catch (UnsupportedFlavorException | IOException e) {
+                                    m_logger.log(Level.SEVERE, "Unable to handle drop operation", e);
+                                    return false;
+                                }
+                            }
+
+                            private Collection<File> filterDirectories(TransferSupport support) throws UnsupportedFlavorException, IOException {
+                                return Collections2.filter((List<File>) support.getTransferable().getTransferData(DataFlavor.javaFileListFlavor), new Predicate<File>() {
                                     @Override
-                                    public boolean importData(TransferSupport support) {
-                                        try {
-                                            Collection<File> directories = filterDirectories(support);
-
-                                            if (directories.isEmpty()) {
-                                                return false;
-                                            }
-
-                                            m_eventBus.post(new AddWebRootDirectoriesRequest(Collections2.transform(directories, new Function<File, Path>() {
-                                                @Override
-                                                public Path apply(@javax.annotation.Nullable File file) {
-                                                    return file.toPath();
-                                                }
-                                            })));
-
-                                            return true;
-                                        } catch (UnsupportedFlavorException | IOException e) {
-                                            m_logger.log(Level.SEVERE, "Unable to handle drop operation", e);
-                                            return false;
-                                        }
-                                    }
-
-                                    private Collection<File> filterDirectories(TransferSupport support) throws UnsupportedFlavorException, IOException {
-                                        return Collections2.filter((List<File>) support.getTransferable().getTransferData(DataFlavor.javaFileListFlavor), new Predicate<File>() {
-                                            @Override
-                                            public boolean apply(@Nullable File file) {
-                                                return file.isDirectory();
-                                            }
-                                        });
+                                    public boolean apply(@Nullable File file) {
+                                        return file.isDirectory();
                                     }
                                 });
+                            }
+                        });
 
                 JLabel infoLabel = new JLabel("Drop web root directories here");
                 infoLabel.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));

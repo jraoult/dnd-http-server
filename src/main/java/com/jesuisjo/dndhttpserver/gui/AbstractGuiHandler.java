@@ -13,11 +13,11 @@ public abstract class AbstractGuiHandler implements GuiPlatformSpecificHandler {
         NO_DIRECTORIES_REGISTERED_MENU_ITEM.setEnabled(false);
     }
 
-    private final Runnable m_onViewPortSettingScreen;
+    private final Runnable m_viewPortSettingScreenCommand;
     private final PopupMenu m_popupMenu;
 
-    protected AbstractGuiHandler(Runnable onViewPortSettingScreen, PopupMenu popupMenu) {
-        m_onViewPortSettingScreen = onViewPortSettingScreen;
+    protected AbstractGuiHandler(Runnable viewPortSettingScreenCommand, PopupMenu popupMenu) {
+        m_viewPortSettingScreenCommand = viewPortSettingScreenCommand;
         m_popupMenu = popupMenu;
     }
 
@@ -37,12 +37,12 @@ public abstract class AbstractGuiHandler implements GuiPlatformSpecificHandler {
         m_popupMenu.remove(DefaultGuiHandler.NO_DIRECTORIES_REGISTERED_MENU_ITEM);
     }
 
-    protected MenuItem buildChangePortItem() {
+    protected MenuItem buildChangePortMenuItem() {
         MenuItem changePortItem = new MenuItem("Change listening port");
         changePortItem.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                m_onViewPortSettingScreen.run();
+                m_viewPortSettingScreenCommand.run();
             }
         });
 
@@ -51,9 +51,5 @@ public abstract class AbstractGuiHandler implements GuiPlatformSpecificHandler {
 
     protected PopupMenu getPopupMenu() {
         return m_popupMenu;
-    }
-
-    protected Runnable getOnViewPortSettingScreen() {
-        return m_onViewPortSettingScreen;
     }
 }

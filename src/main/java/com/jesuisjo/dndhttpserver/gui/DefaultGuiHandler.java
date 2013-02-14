@@ -14,8 +14,15 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
+/**
+ * The default implementation of gui handler. It can be used as is for Windows and Linux.
+ */
 public class DefaultGuiHandler extends AbstractGuiHandler {
+
+    private final Logger m_logger = Logger.getLogger(getClass().toString());
 
     private final JFrame m_mainFrame;
     private final String m_appName;
@@ -27,7 +34,6 @@ public class DefaultGuiHandler extends AbstractGuiHandler {
 
     public DefaultGuiHandler(JFrame mainFrame, String appName, Image appIcon, Runnable onViewPortSettingScreen, Runnable onQuitAction) {
         super(onViewPortSettingScreen, new PopupMenu(appName));
-
         m_mainFrame = mainFrame;
         m_appName = appName;
         m_appIcon = appIcon;
@@ -51,7 +57,7 @@ public class DefaultGuiHandler extends AbstractGuiHandler {
         });
 
         PopupMenu popupMenu = getPopupMenu();
-        popupMenu.add(buildChangePortItem());
+        popupMenu.add(buildChangePortMenuItem());
         popupMenu.add(quitItem);
         popupMenu.addSeparator();
         popupMenu.add(NO_DIRECTORIES_REGISTERED_MENU_ITEM);
@@ -72,7 +78,7 @@ public class DefaultGuiHandler extends AbstractGuiHandler {
             try {
                 m_systemTray.add(trayIcon);
             } catch (AWTException e) {
-                throw new RuntimeException(e);
+                m_logger.log(Level.SEVERE, "Unable to install the tray icon", e);
             }
             m_trayIcon = trayIcon;
         }
