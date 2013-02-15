@@ -202,6 +202,9 @@ public class Gui {
                 m_mainFrame.add(droppingPanel);
                 m_mainFrame.pack();
                 m_mainFrame.setVisible(true);
+
+                notificationOverlayPanel.notifySuccess("Lorem ipsum dolor si");
+//                notificationOverlayPanel.notifySuccess("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis eleifend vulputate condimentum. Vivamus dapibus fermentum cras amet.");
             }
         });
     }

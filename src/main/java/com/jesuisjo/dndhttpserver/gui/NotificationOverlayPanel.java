@@ -7,15 +7,15 @@ import aurelienribon.tweenengine.TweenAccessor;
 import aurelienribon.tweenengine.TweenCallback;
 import aurelienribon.tweenengine.TweenManager;
 
-import javax.swing.Box;
+import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JFrame;
 import javax.swing.JLayeredPane;
 import javax.swing.JPanel;
-import javax.swing.JTextArea;
+import javax.swing.JTextPane;
 import javax.swing.SwingUtilities;
+import javax.swing.text.JTextComponent;
 import java.awt.Color;
-import java.awt.Dimension;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.util.ArrayDeque;
@@ -34,24 +34,23 @@ public class NotificationOverlayPanel {
     public static final Color ERROR_FG_COLOR = new Color(185, 74, 0, 0);
 
     private final JPanel m_notificationPanel;
-    private final JTextArea m_notificationText;
+    private final JTextComponent m_notificationText;
     private final FxQueue m_fxQueue = new FxQueue(this);
 
     public NotificationOverlayPanel() {
         m_notificationPanel = new JPanel();
         m_notificationPanel.setLayout(new BoxLayout(m_notificationPanel, BoxLayout.PAGE_AXIS));
-        m_notificationPanel.setBackground(ERROR_BG_COLOR);
+        m_notificationPanel.setVisible(false);
+        m_notificationPanel.setOpaque(false);
 
-        m_notificationText = new JTextArea();
-        m_notificationText.setLineWrap(true);
-        m_notificationText.setWrapStyleWord(true);
+        m_notificationText = new JTextPane();
         m_notificationText.setEditable(false);
         m_notificationText.setOpaque(false);
-
-        m_notificationPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-        m_notificationPanel.add(m_notificationText);
-        m_notificationPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-        m_notificationPanel.setVisible(false);
+        m_notificationText.setFocusable(false);
+        m_notificationText.setHighlighter(null);
+        m_notificationText.setDragEnabled(false);
+        m_notificationText.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+       // m_notificationPanel.add(m_notificationText);
     }
 
     public void install(JFrame jFrame) {
@@ -60,7 +59,7 @@ public class NotificationOverlayPanel {
         layeredPane.addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
-                m_notificationPanel.setSize(e.getComponent().getWidth(), m_notificationPanel.getPreferredSize().height);
+                m_notificationPanel.setSize(e.getComponent().getWidth(),100);
             }
         });
     }
@@ -84,8 +83,9 @@ public class NotificationOverlayPanel {
     private void setOpacity(float opacity) {
         Color bgColor = m_notificationPanel.getBackground();
         Color fgColor = m_notificationText.getForeground();
-        m_notificationPanel.setBackground(new Color(bgColor.getRed(), bgColor.getGreen(), bgColor.getBlue(), Math.round(255 * opacity)));
-        m_notificationText.setForeground(new Color(fgColor.getRed(), fgColor.getGreen(), fgColor.getBlue(), Math.round(255 * opacity)));
+        int alphaValue = Math.round(255 * opacity);
+        m_notificationPanel.setBackground(new Color(bgColor.getRed(), bgColor.getGreen(), bgColor.getBlue(), alphaValue));
+        m_notificationText.setForeground(new Color(fgColor.getRed(), fgColor.getGreen(), fgColor.getBlue(), alphaValue));
         m_notificationPanel.getParent().repaint();
     }
 
@@ -160,7 +160,7 @@ public class NotificationOverlayPanel {
         }
 
         Tween buildOpacityTween() {
-            return Tween.to(m_notificationOverlayPanel, NotificationOverlayPanelTweenAccessor.TYPE_OPACITY, 350);
+            return Tween.to(m_notificationOverlayPanel, NotificationOverlayPanelTweenAccessor.TYPE_OPACITY, 2000);
         }
 
         void executeOrEnqueue(Tween tween, final ForwardingMultiCallbacksList callbacksList) {
@@ -218,13 +218,11 @@ public class NotificationOverlayPanel {
                     return -1;
                 }
                 returnValues[0] = target.m_notificationPanel.getBackground().getAlpha() / 255f;
-                Logger.getAnonymousLogger().info(String.valueOf(returnValues[0]));
                 return 1;
             }
 
             @Override
             public void setValues(NotificationOverlayPanel target, int tweenType, float[] newValues) {
-                Logger.getAnonymousLogger().info(String.valueOf(newValues[0]));
                 target.setOpacity(newValues[0]);
             }
         }
