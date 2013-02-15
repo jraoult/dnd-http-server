@@ -15,11 +15,12 @@ public class OsXGuiHandler extends AbstractGuiHandler {
     private final Application m_application = Application.getApplication();
     private final JFrame m_mainFrame;
     private final Runnable m_onQuitAction;
-    private final NotificationOverlayPanel m_notificationOverlayPanel = new NotificationOverlayPanel();
+    private final NotificationOverlayPanel m_notificationOverlayPanel;
 
-    public OsXGuiHandler(JFrame mainFrame, Runnable viewPortSettingScreenCommand, Runnable onQuitAction) {
+    public OsXGuiHandler(JFrame mainFrame, NotificationOverlayPanel notificationOverlayPanel, Runnable onQuitAction, Runnable viewPortSettingScreenCommand) {
         super(viewPortSettingScreenCommand, new PopupMenu());
         m_mainFrame = mainFrame;
+        m_notificationOverlayPanel = notificationOverlayPanel;
         m_onQuitAction = onQuitAction;
     }
 
@@ -62,7 +63,7 @@ public class OsXGuiHandler extends AbstractGuiHandler {
 
     @Override
     public void displayErrorNotification(String caption, String message) {
-        m_notificationOverlayPanel.notifyFail(message);
+        m_notificationOverlayPanel.notifyError(message);
     }
 
     @Override

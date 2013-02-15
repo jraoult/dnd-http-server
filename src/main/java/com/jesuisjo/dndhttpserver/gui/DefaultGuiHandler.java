@@ -28,15 +28,17 @@ public class DefaultGuiHandler extends AbstractGuiHandler {
     private final String m_appName;
     private final Image m_appIcon;
     private final SystemTray m_systemTray;
+    private final NotificationOverlayPanel m_notificationOverlayPanel;
     private final Runnable m_onQuitAction;
 
     private TrayIcon m_trayIcon;
 
-    public DefaultGuiHandler(JFrame mainFrame, String appName, Image appIcon, Runnable onViewPortSettingScreen, Runnable onQuitAction) {
+    public DefaultGuiHandler(JFrame mainFrame, String appName, Image appIcon, NotificationOverlayPanel notificationOverlayPanel, Runnable onViewPortSettingScreen, Runnable onQuitAction) {
         super(onViewPortSettingScreen, new PopupMenu(appName));
         m_mainFrame = mainFrame;
         m_appName = appName;
         m_appIcon = appIcon;
+        m_notificationOverlayPanel = notificationOverlayPanel;
         m_onQuitAction = onQuitAction;
         m_systemTray = SystemTray.isSupported() ? SystemTray.getSystemTray() : null;
     }
@@ -86,16 +88,12 @@ public class DefaultGuiHandler extends AbstractGuiHandler {
 
     @Override
     public void displayInfoNotification(String caption, String message) {
-        if (m_trayIcon != null) {
-            m_trayIcon.displayMessage(null, message, TrayIcon.MessageType.INFO);
-        }
+        m_notificationOverlayPanel.notifySuccess(message);
     }
 
     @Override
     public void displayErrorNotification(String caption, String message) {
-        if (m_trayIcon != null) {
-            m_trayIcon.displayMessage(null, message, TrayIcon.MessageType.ERROR);
-        }
+        m_notificationOverlayPanel.notifyError(message);
     }
 
     @Override

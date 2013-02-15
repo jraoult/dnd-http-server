@@ -10,6 +10,7 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.eventbus.EventBus;
 import com.jesuisjo.dndhttpserver.gui.DefaultGuiHandler;
 import com.jesuisjo.dndhttpserver.gui.GuiPlatformSpecificHandler;
+import com.jesuisjo.dndhttpserver.gui.NotificationOverlayPanel;
 import com.jesuisjo.dndhttpserver.gui.OsXGuiHandler;
 
 import javax.annotation.Nullable;
@@ -18,10 +19,8 @@ import javax.swing.BorderFactory;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JLayeredPane;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JTextArea;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.TransferHandler;
@@ -38,8 +37,6 @@ import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.dnd.InvalidDnDOperationException;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -114,13 +111,15 @@ public class Gui {
                 };
 
                 m_mainFrame = new JFrame(APP_NAME);
+                NotificationOverlayPanel notificationOverlayPanel = new NotificationOverlayPanel();
+                notificationOverlayPanel.install(m_mainFrame);
 
                 try {
                     // is the apple extension available ?
                     Class.forName("com.apple.eawt.Application");
-                    m_guiHandler = new OsXGuiHandler(m_mainFrame, viewPortSettingScreenCommand, onQuitAction);
+                    m_guiHandler = new OsXGuiHandler(m_mainFrame, notificationOverlayPanel, onQuitAction, viewPortSettingScreenCommand);
                 } catch (ClassNotFoundException e) {
-                    m_guiHandler = new DefaultGuiHandler(m_mainFrame, APP_NAME, m_appIcon, viewPortSettingScreenCommand, onQuitAction);
+                    m_guiHandler = new DefaultGuiHandler(m_mainFrame, APP_NAME, m_appIcon, notificationOverlayPanel, viewPortSettingScreenCommand, onQuitAction);
                 }
 
                 m_guiHandler.installAppIcon(m_appIcon);

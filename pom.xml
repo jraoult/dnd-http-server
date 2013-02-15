@@ -13,6 +13,11 @@
             <id>ooo-maven-repo</id>
             <url>http://ooo-maven.googlecode.com/hg/repository</url>
         </repository>
+
+        <repository>
+            <id>jesuisjo-maven-repository</id>
+            <url>http://mvn-repository.jesuisjo.com</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -39,6 +44,12 @@
             <artifactId>applejavaextensions</artifactId>
             <version>1.5.4</version>
             <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.aurelienribon</groupId>
+            <artifactId>tweenengine</artifactId>
+            <version>6.3.3</version>
         </dependency>
     </dependencies>
 
