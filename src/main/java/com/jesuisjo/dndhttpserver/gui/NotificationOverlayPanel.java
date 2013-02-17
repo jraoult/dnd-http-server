@@ -75,7 +75,7 @@ public class NotificationOverlayPanel {
         m_notificationText.setForeground(SUCCESS_FG_COLOR);
         m_notificationText.setText(message);
 
-        m_fxQueue.fadeIn().delay(2000).fadeOut();
+        m_fxQueue.fadeIn().delay(5000).fadeOut();
     }
 
     public void notifyError(String message) {
@@ -83,7 +83,7 @@ public class NotificationOverlayPanel {
         m_notificationText.setForeground(ERROR_FG_COLOR);
         m_notificationText.setText(message);
 
-        m_fxQueue.fadeIn().delay(2000).fadeOut();
+        m_fxQueue.fadeIn().delay(5000).fadeOut();
     }
 
     private void setOpacity(float opacity) {
@@ -92,7 +92,6 @@ public class NotificationOverlayPanel {
         int alphaValue = Math.round(255 * opacity);
         m_notificationPanel.setBackground(new Color(bgColor.getRed(), bgColor.getGreen(), bgColor.getBlue(), alphaValue));
         m_notificationText.setForeground(new Color(fgColor.getRed(), fgColor.getGreen(), fgColor.getBlue(), alphaValue));
-        // m_notificationPanel.getParent().repaint();
     }
 
     private static class FxQueue {
@@ -166,7 +165,7 @@ public class NotificationOverlayPanel {
         }
 
         Tween buildOpacityTween() {
-            return Tween.to(m_notificationOverlayPanel, NotificationOverlayPanelTweenAccessor.TYPE_OPACITY, 2000);
+            return Tween.to(m_notificationOverlayPanel, NotificationOverlayPanelTweenAccessor.TYPE_OPACITY, 500);
         }
 
         void executeOrEnqueue(Tween tween, final ForwardingMultiCallbacksList callbacksList) {

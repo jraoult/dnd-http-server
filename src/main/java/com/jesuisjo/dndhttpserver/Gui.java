@@ -104,11 +104,11 @@ public class Gui {
                     }
                 };
                 final Runnable onQuitAction = new Runnable() {
-                    @Override
-                    public void run() {
-                        m_eventBus.post(new QuitApplicationRequest());
-                    }
-                };
+                            @Override
+                            public void run() {
+                                m_eventBus.post(new QuitApplicationRequest());
+                            }
+                        };
 
                 m_mainFrame = new JFrame(APP_NAME);
                 NotificationOverlayPanel notificationOverlayPanel = new NotificationOverlayPanel();
@@ -202,9 +202,6 @@ public class Gui {
                 m_mainFrame.add(droppingPanel);
                 m_mainFrame.pack();
                 m_mainFrame.setVisible(true);
-
-                notificationOverlayPanel.notifySuccess("Lorem ipsum dolor si");
-//                notificationOverlayPanel.notifySuccess("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis eleifend vulputate condimentum. Vivamus dapibus fermentum cras amet.");
             }
         });
     }
@@ -274,6 +271,15 @@ public class Gui {
             @Override
             public void run() {
                 displayInfoMessage("The server is now listening on port " + port);
+            }
+        });
+    }
+
+    public void notifyOfServerStart(final int port) {
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                displayInfoMessage("The server successfully started and is now listening on port " + port);
             }
         });
     }

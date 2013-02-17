@@ -64,6 +64,11 @@ public class Main {
             }
 
             @Subscribe
+            public void onServerStartSucceed(ServerStartSucceed event) {
+                gui.notifyOfServerStart(event.getPort());
+            }
+
+            @Subscribe
             public void onServerStartFailed(ServerStartFailed event) {
                 gui.notifyOfUnderlyingServerError(event.getPort(), event.getCause());
             }

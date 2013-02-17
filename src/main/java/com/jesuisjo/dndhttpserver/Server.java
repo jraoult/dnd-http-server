@@ -29,6 +29,7 @@ public class Server {
         m_httpServer.addListener(buildListener(port));
         try {
             m_httpServer.start();
+            m_eventBus.post(new ServerStartSucceed(port));
         } catch (IOException e) {
             m_eventBus.post(new ServerStartFailed(port, e));
         }
