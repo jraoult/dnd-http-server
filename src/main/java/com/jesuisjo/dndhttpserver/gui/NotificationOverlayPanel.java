@@ -16,6 +16,7 @@ import javax.swing.JTextPane;
 import javax.swing.SwingUtilities;
 import javax.swing.text.JTextComponent;
 import java.awt.Color;
+import java.awt.Graphics;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.util.ArrayDeque;
@@ -24,7 +25,6 @@ import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
 
 public class NotificationOverlayPanel {
 
@@ -32,13 +32,19 @@ public class NotificationOverlayPanel {
     public static final Color SUCCESS_FG_COLOR = new Color(70, 136, 71, 0);
     public static final Color ERROR_BG_COLOR = new Color(242, 222, 222, 0);
     public static final Color ERROR_FG_COLOR = new Color(185, 74, 0, 0);
-
     private final JPanel m_notificationPanel;
     private final JTextComponent m_notificationText;
     private final FxQueue m_fxQueue = new FxQueue(this);
 
     public NotificationOverlayPanel() {
-        m_notificationPanel = new JPanel();
+        m_notificationPanel = new JPanel() {
+            // used to manage opacity properly, see http://tips4java.wordpress.com/2009/05/31/backgrounds-with-transparency/
+            protected void paintComponent(Graphics g) {
+                g.setColor(getBackground());
+                g.fillRect(0, 0, getWidth(), getHeight());
+                super.paintComponent(g);
+            }
+        };
         m_notificationPanel.setLayout(new BoxLayout(m_notificationPanel, BoxLayout.PAGE_AXIS));
         m_notificationPanel.setVisible(false);
         m_notificationPanel.setOpaque(false);
@@ -50,7 +56,7 @@ public class NotificationOverlayPanel {
         m_notificationText.setHighlighter(null);
         m_notificationText.setDragEnabled(false);
         m_notificationText.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-       // m_notificationPanel.add(m_notificationText);
+        m_notificationPanel.add(m_notificationText);
     }
 
     public void install(JFrame jFrame) {
@@ -59,7 +65,7 @@ public class NotificationOverlayPanel {
         layeredPane.addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
-                m_notificationPanel.setSize(e.getComponent().getWidth(),100);
+                m_notificationPanel.setSize(e.getComponent().getWidth(), m_notificationText.getSize().height);
             }
         });
     }
@@ -86,7 +92,7 @@ public class NotificationOverlayPanel {
         int alphaValue = Math.round(255 * opacity);
         m_notificationPanel.setBackground(new Color(bgColor.getRed(), bgColor.getGreen(), bgColor.getBlue(), alphaValue));
         m_notificationText.setForeground(new Color(fgColor.getRed(), fgColor.getGreen(), fgColor.getBlue(), alphaValue));
-        m_notificationPanel.getParent().repaint();
+        // m_notificationPanel.getParent().repaint();
     }
 
     private static class FxQueue {
