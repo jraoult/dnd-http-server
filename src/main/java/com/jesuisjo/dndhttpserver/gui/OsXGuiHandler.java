@@ -15,22 +15,19 @@ public class OsXGuiHandler extends AbstractGuiHandler {
     private final Application m_application = Application.getApplication();
     private final JFrame m_mainFrame;
     private final Runnable m_onQuitAction;
-    private final NotificationOverlayPanel m_notificationOverlayPanel;
+    private final Image m_appIcon;
 
-    public OsXGuiHandler(JFrame mainFrame, NotificationOverlayPanel notificationOverlayPanel, Runnable onQuitAction, Runnable viewPortSettingScreenCommand) {
-        super(viewPortSettingScreenCommand, new PopupMenu());
+    public OsXGuiHandler(JFrame mainFrame, Image appIcon, Runnable onQuitAction, Runnable viewPortSettingScreenCommand, NotificationOverlayPanel notificationOverlayPanel) {
+        super(mainFrame, appIcon, notificationOverlayPanel, new PopupMenu(), viewPortSettingScreenCommand, onQuitAction);
         m_mainFrame = mainFrame;
-        m_notificationOverlayPanel = notificationOverlayPanel;
+        m_appIcon = appIcon;
         m_onQuitAction = onQuitAction;
     }
 
     @Override
-    public void installAppIcon(Image image) {
-        m_application.setDockIconImage(image);
-    }
+    public void install() {
+        m_application.setDockIconImage(m_appIcon);
 
-    @Override
-    public void installWindowBehavior() {
         m_application.addAppEventListener(new AppReOpenedListener() {
             @Override
             public void appReOpened(AppEvent.AppReOpenedEvent appReOpenedEvent) {
@@ -45,25 +42,12 @@ public class OsXGuiHandler extends AbstractGuiHandler {
                 quitResponse.performQuit();
             }
         });
-    }
 
-    @Override
-    public void installMenu() {
         PopupMenu popupMenu = getPopupMenu();
         popupMenu.add(buildChangePortMenuItem());
         popupMenu.addSeparator();
         popupMenu.add(NO_DIRECTORIES_REGISTERED_MENU_ITEM);
         m_application.setDockMenu(popupMenu);
-    }
-
-    @Override
-    public void displayInfoNotification(String caption, String message) {
-        m_notificationOverlayPanel.notifySuccess(message);
-    }
-
-    @Override
-    public void displayErrorNotification(String caption, String message) {
-        m_notificationOverlayPanel.notifyError(message);
     }
 
     @Override

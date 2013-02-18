@@ -1,4 +1,4 @@
-package com.jesuisjo.dndhttpserver;
+package com.jesuisjo.dndhttpserver.events;
 
 public class ServerStartFailed {
 

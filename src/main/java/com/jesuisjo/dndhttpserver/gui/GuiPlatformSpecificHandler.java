@@ -2,12 +2,11 @@ package com.jesuisjo.dndhttpserver.gui;
 
 import java.awt.Image;
 import java.awt.MenuItem;
+import java.awt.image.BufferedImage;
 
 public interface GuiPlatformSpecificHandler {
 
-    void installAppIcon(Image image);
-
-    void installMenu();
+    void install();
 
     void addRemoveHandlerMenuItem(MenuItem menuItem);
 
@@ -17,11 +16,9 @@ public interface GuiPlatformSpecificHandler {
 
     void hideNoHandlerMenuItem();
 
-    void installWindowBehavior();
+    void displayInfo(String message);
 
-    void displayInfoNotification(String caption, String message);
-
-    void displayErrorNotification(String caption, String message);
+    void displayError(String message);
 
     void dispose();
 }

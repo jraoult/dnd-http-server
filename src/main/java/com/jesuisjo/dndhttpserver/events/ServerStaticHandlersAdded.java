@@ -1,4 +1,4 @@
-package com.jesuisjo.dndhttpserver;
+package com.jesuisjo.dndhttpserver.events;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;

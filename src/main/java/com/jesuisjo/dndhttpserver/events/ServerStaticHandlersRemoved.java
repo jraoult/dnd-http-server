@@ -1,4 +1,4 @@
-package com.jesuisjo.dndhttpserver;
+package com.jesuisjo.dndhttpserver.events;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
@@ -6,11 +6,11 @@ import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.Collection;
 
-public class RemoveWebRootDirectoriesRequest {
+public class ServerStaticHandlersRemoved {
 
     private final ImmutableList<Path> m_directories;
 
-    public RemoveWebRootDirectoriesRequest(Collection<Path> directories) {
+    public ServerStaticHandlersRemoved(Collection<Path> directories) {
         m_directories = ImmutableList.copyOf(directories);
     }
 

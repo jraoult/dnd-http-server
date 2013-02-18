@@ -1,4 +1,4 @@
-package com.jesuisjo.dndhttpserver;
+package com.jesuisjo.dndhttpserver.gui;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
@@ -10,10 +10,10 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.eventbus.EventBus;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import com.jesuisjo.dndhttpserver.gui.DefaultGuiHandler;
-import com.jesuisjo.dndhttpserver.gui.GuiPlatformSpecificHandler;
-import com.jesuisjo.dndhttpserver.gui.NotificationOverlayPanel;
-import com.jesuisjo.dndhttpserver.gui.OsXGuiHandler;
+import com.jesuisjo.dndhttpserver.events.AddWebRootDirectoriesRequest;
+import com.jesuisjo.dndhttpserver.events.ChangeListeningPortRequest;
+import com.jesuisjo.dndhttpserver.events.QuitApplicationRequest;
+import com.jesuisjo.dndhttpserver.events.RemoveWebRootDirectoriesRequest;
 
 import javax.annotation.Nullable;
 import javax.imageio.ImageIO;
@@ -62,6 +62,7 @@ public class Gui {
     private final EventBus m_eventBus;
     private final Font m_iconFont;
     private final BufferedImage m_appIcon;
+    private final BufferedImage m_appIconSmall;
 
     // all the following variables should only be accessed by the GUI thread
     private JFrame m_mainFrame;
@@ -86,13 +87,8 @@ public class Gui {
         }
         m_iconFont = iconFont;
 
-        BufferedImage appIcon = null;
-        try (InputStream trayIconIs = Thread.currentThread().getContextClassLoader().getResourceAsStream("app-icon.png")) {
-            appIcon = ImageIO.read(trayIconIs);
-        } catch (IOException e) {
-            m_logger.log(Level.SEVERE, "Unable to load the application icon", e);
-        }
-        m_appIcon = appIcon;
+        m_appIcon = buildIcon("app-icon.png");
+        m_appIconSmall = buildIcon("app-icon-small.png");
     }
 
     /**
@@ -126,14 +122,12 @@ public class Gui {
                 try {
                     // is the apple extension available ?
                     Class.forName("com.apple.eawt.Application");
-                    m_guiHandler = new OsXGuiHandler(m_mainFrame, notificationOverlayPanel, onQuitAction, viewPortSettingScreenCommand);
+                    m_guiHandler = new OsXGuiHandler(m_mainFrame, m_appIcon, onQuitAction, viewPortSettingScreenCommand, notificationOverlayPanel);
                 } catch (ClassNotFoundException e) {
-                    m_guiHandler = new DefaultGuiHandler(m_mainFrame, APP_NAME, m_appIcon, notificationOverlayPanel, viewPortSettingScreenCommand, onQuitAction);
+                    m_guiHandler = new DefaultGuiHandler(m_mainFrame, APP_NAME, m_appIcon, m_appIconSmall, onQuitAction, viewPortSettingScreenCommand, notificationOverlayPanel);
                 }
 
-                m_guiHandler.installAppIcon(m_appIcon);
-                m_guiHandler.installWindowBehavior();
-                m_guiHandler.installMenu();
+                m_guiHandler.install();
 
                 m_mainFrame.setPreferredSize(new Dimension(300, 150));
 
@@ -263,7 +257,7 @@ public class Gui {
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                displayInfoMessage("New web root directories registered :\n"
+                m_guiHandler.displayInfo("New web root directories registered :\n"
                         + Joiner.on("\n").join(Collections2.transform(directories, Functions.toStringFunction())));
             }
         });
@@ -273,7 +267,7 @@ public class Gui {
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                displayInfoMessage("Web root directories unregistered :\n"
+                m_guiHandler.displayInfo("Web root directories unregistered :\n"
                         + Joiner.on("\n").join(Collections2.transform(directories, Functions.toStringFunction())));
             }
         });
@@ -283,7 +277,7 @@ public class Gui {
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                displayInfoMessage("The server is now listening on port " + port);
+                m_guiHandler.displayInfo("The server is now listening on port " + port);
             }
         });
     }
@@ -292,7 +286,7 @@ public class Gui {
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                displayInfoMessage("The server successfully started and is now listening on port " + port);
+                m_guiHandler.displayInfo("The server successfully started and is now listening on port " + port);
             }
         });
     }
@@ -301,7 +295,7 @@ public class Gui {
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                displayErrorMessage(String.format("The server was not able to (re) start on port %d because of en exception : %s", port, cause.getMessage()));
+                m_guiHandler.displayError(String.format("The server was not able to (re) start on port %d because of en exception : %s", port, cause.getMessage()));
             }
         });
     }
@@ -316,14 +310,6 @@ public class Gui {
         });
     }
 
-    private void displayInfoMessage(String message) {
-        m_guiHandler.displayInfoNotification(null, message);
-    }
-
-    private void displayErrorMessage(String message) {
-        m_guiHandler.displayErrorNotification(null, message);
-    }
-
     private void viewPortSettingScreen() {
         String portStr = JOptionPane.showInputDialog("Please enter a new port number");
         if (!Strings.isNullOrEmpty(portStr)) {
@@ -333,5 +319,15 @@ public class Gui {
 
             }
         }
+    }
+
+    private BufferedImage buildIcon(String pathName) {
+        BufferedImage appIcon = null;
+        try (InputStream trayIconIs = Thread.currentThread().getContextClassLoader().getResourceAsStream(pathName)) {
+            return ImageIO.read(trayIconIs);
+        } catch (IOException e) {
+            m_logger.log(Level.SEVERE, "Unable to load the application icon", e);
+        }
+        return appIcon;
     }
 }

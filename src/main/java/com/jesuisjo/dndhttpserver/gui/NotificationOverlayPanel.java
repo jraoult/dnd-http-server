@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit;
 
 public class NotificationOverlayPanel {
 
-    public static final Color SUCCESS_BG_COLOR = new Color(223, 240, 216, 00);
+    public static final Color SUCCESS_BG_COLOR = new Color(223, 240, 216, 0);
     public static final Color SUCCESS_FG_COLOR = new Color(70, 136, 71, 0);
     public static final Color ERROR_BG_COLOR = new Color(242, 222, 222, 0);
     public static final Color ERROR_FG_COLOR = new Color(185, 74, 0, 0);
