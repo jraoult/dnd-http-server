@@ -8,17 +8,19 @@ import aurelienribon.tweenengine.TweenCallback;
 import aurelienribon.tweenengine.TweenManager;
 
 import javax.swing.BorderFactory;
-import javax.swing.BoxLayout;
 import javax.swing.JFrame;
 import javax.swing.JLayeredPane;
 import javax.swing.JPanel;
 import javax.swing.JTextPane;
 import javax.swing.SwingUtilities;
 import javax.swing.text.JTextComponent;
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,7 +47,8 @@ public class NotificationOverlayPanel {
                 super.paintComponent(g);
             }
         };
-        m_notificationPanel.setLayout(new BoxLayout(m_notificationPanel, BoxLayout.PAGE_AXIS));
+
+        m_notificationPanel.setLayout(new BorderLayout());
         m_notificationPanel.setVisible(false);
         m_notificationPanel.setOpaque(false);
 
@@ -56,7 +59,15 @@ public class NotificationOverlayPanel {
         m_notificationText.setHighlighter(null);
         m_notificationText.setDragEnabled(false);
         m_notificationText.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        m_notificationPanel.add(m_notificationText);
+        m_notificationPanel.add(m_notificationText, BorderLayout.PAGE_START);
+
+        // dismiss the notification on click
+        m_notificationText.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                m_fxQueue.fadeOut();
+            }
+        });
     }
 
     public void install(JFrame jFrame) {
@@ -65,7 +76,7 @@ public class NotificationOverlayPanel {
         layeredPane.addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
-                m_notificationPanel.setSize(e.getComponent().getWidth(), m_notificationText.getSize().height);
+                m_notificationPanel.setSize(e.getComponent().getWidth(), m_notificationPanel.getHeight());
             }
         });
     }
@@ -73,17 +84,17 @@ public class NotificationOverlayPanel {
     public void notifySuccess(String message) {
         m_notificationPanel.setBackground(SUCCESS_BG_COLOR);
         m_notificationText.setForeground(SUCCESS_FG_COLOR);
-        m_notificationText.setText(message);
+        setTextAndResize(message);
 
-        m_fxQueue.fadeIn().delay(5000).fadeOut();
+        m_fxQueue.fadeIn();
     }
 
     public void notifyError(String message) {
         m_notificationPanel.setBackground(ERROR_BG_COLOR);
         m_notificationText.setForeground(ERROR_FG_COLOR);
-        m_notificationText.setText(message);
+        setTextAndResize(message);
 
-        m_fxQueue.fadeIn().delay(5000).fadeOut();
+        m_fxQueue.fadeIn();
     }
 
     private void setOpacity(float opacity) {
@@ -92,6 +103,12 @@ public class NotificationOverlayPanel {
         int alphaValue = Math.round(255 * opacity);
         m_notificationPanel.setBackground(new Color(bgColor.getRed(), bgColor.getGreen(), bgColor.getBlue(), alphaValue));
         m_notificationText.setForeground(new Color(fgColor.getRed(), fgColor.getGreen(), fgColor.getBlue(), alphaValue));
+    }
+
+    private void setTextAndResize(String message) {
+        m_notificationText.setSize(m_notificationPanel.getWidth(), Integer.MAX_VALUE);
+        m_notificationText.setText(message);
+        m_notificationPanel.setSize(m_notificationPanel.getWidth(), m_notificationText.getPreferredSize().height);
     }
 
     private static class FxQueue {
