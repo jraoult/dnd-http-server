@@ -3,6 +3,7 @@ package com.jesuisjo.dndhttpserver;
 import com.google.common.eventbus.AsyncEventBus;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
+import com.google.common.util.concurrent.MoreExecutors;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
@@ -74,7 +75,13 @@ public class Main {
             }
         });
 
-        gui.start();
-        server.start(8080);
+        // starts the gui and wait for it to be totally initialized before starting the server
+        // it allows the gui the behave correctly even if the server is really quick to start
+        gui.start().addListener(new Runnable() {
+            @Override
+            public void run() {
+                server.start(8080);
+            }
+        }, MoreExecutors.sameThreadExecutor());
     }
 }

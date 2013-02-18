@@ -8,6 +8,8 @@ import com.google.common.base.Strings;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.eventbus.EventBus;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 import com.jesuisjo.dndhttpserver.gui.DefaultGuiHandler;
 import com.jesuisjo.dndhttpserver.gui.GuiPlatformSpecificHandler;
 import com.jesuisjo.dndhttpserver.gui.NotificationOverlayPanel;
@@ -93,7 +95,14 @@ public class Gui {
         m_appIcon = appIcon;
     }
 
-    public void start() {
+    /**
+     * Initializes and displays the GUI.
+     *
+     * @return a future that is resolved when the GUI is ready
+     */
+    public ListenableFuture<Void> start() {
+        final SettableFuture<Void> future = SettableFuture.create();
+
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
@@ -104,11 +113,11 @@ public class Gui {
                     }
                 };
                 final Runnable onQuitAction = new Runnable() {
-                            @Override
-                            public void run() {
-                                m_eventBus.post(new QuitApplicationRequest());
-                            }
-                        };
+                    @Override
+                    public void run() {
+                        m_eventBus.post(new QuitApplicationRequest());
+                    }
+                };
 
                 m_mainFrame = new JFrame(APP_NAME);
                 NotificationOverlayPanel notificationOverlayPanel = new NotificationOverlayPanel();
@@ -202,8 +211,12 @@ public class Gui {
                 m_mainFrame.add(droppingPanel);
                 m_mainFrame.pack();
                 m_mainFrame.setVisible(true);
+
+                future.set(null);
             }
         });
+
+        return future;
     }
 
     public void addRemoveHandlerButtons(final ImmutableCollection<Path> directories) {

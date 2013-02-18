@@ -97,6 +97,10 @@ public class NotificationOverlayPanel {
         m_fxQueue.fadeIn();
     }
 
+    private float getOpacity() {
+        return m_notificationPanel.getBackground().getAlpha() / 255f;
+    }
+
     private void setOpacity(float opacity) {
         Color bgColor = m_notificationPanel.getBackground();
         Color fgColor = m_notificationText.getForeground();
@@ -239,7 +243,7 @@ public class NotificationOverlayPanel {
                 if (tweenType != TYPE_OPACITY) {
                     return -1;
                 }
-                returnValues[0] = target.m_notificationPanel.getBackground().getAlpha() / 255f;
+                returnValues[0] = target.getOpacity();
                 return 1;
             }
 
