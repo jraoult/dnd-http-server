@@ -4,6 +4,13 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <name>DnD Http Server</name>
+    <description>A little, easy to use static resources http server for quick prototyping</description>
+    <organization>
+        <name>jesuisjo.com</name>
+        <url>http://www.jesuisjo.com</url>
+    </organization>
+
     <groupId>dnd-http-server</groupId>
     <artifactId>dnd-http-server</artifactId>
     <version>1.0-SNAPSHOT</version>
@@ -84,6 +91,38 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>webstart-maven-plugin</artifactId>
+                <version>1.0-beta-3</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jnlp</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <codebase>http://dnd-http-server.jesuisjo.com/javawebstart</codebase>
+                    <jnlp>
+                        <mainClass>com.jesuisjo.dndhttpserver.Main</mainClass>
+                        <offlineAllowed>true</offlineAllowed>
+                        <j2seVersion>1.7+</j2seVersion>
+                    </jnlp>
+                    <pack200>true</pack200>
+                    <!--<sign>-->
+                    <!--<keystore>${project.basedir}/src/main/jnlp/ichir.jks</keystore>-->
+                    <!--<keypass>mahieddine.ichir</keypass>-->
+                    <!--<storepass>mahieddine.ichir</storepass>-->
+                    <!--<alias>ichir</alias>-->
+                    <!--<verify>false</verify>-->
+                    <!--</sign>-->
+                    <verbose>true</verbose>
+                </configuration>
+            </plugin>
+
         </plugins>
     </build>
 
