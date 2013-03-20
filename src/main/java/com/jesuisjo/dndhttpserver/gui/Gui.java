@@ -49,6 +49,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -63,6 +65,7 @@ public class Gui {
     private final Font m_iconFont;
     private final BufferedImage m_appIcon;
     private final BufferedImage m_appIconSmall;
+    private final ScheduledExecutorService m_fxQueueEventLoopExecutor = Executors.newSingleThreadScheduledExecutor();
 
     // all the following variables should only be accessed by the GUI thread
     private JFrame m_mainFrame;
@@ -109,14 +112,14 @@ public class Gui {
                     }
                 };
                 final Runnable onQuitAction = new Runnable() {
-                    @Override
-                    public void run() {
-                        m_eventBus.post(new QuitApplicationRequest());
-                    }
-                };
+                            @Override
+                            public void run() {
+                                m_eventBus.post(new QuitApplicationRequest());
+                            }
+                        };
 
                 m_mainFrame = new JFrame(APP_NAME);
-                NotificationOverlayPanel notificationOverlayPanel = new NotificationOverlayPanel();
+                NotificationOverlayPanel notificationOverlayPanel = new NotificationOverlayPanel(m_fxQueueEventLoopExecutor);
                 notificationOverlayPanel.install(m_mainFrame);
 
                 try {
@@ -301,6 +304,7 @@ public class Gui {
     }
 
     public void dispose() {
+        m_fxQueueEventLoopExecutor.shutdown();
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
