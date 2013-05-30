@@ -106,13 +106,14 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <codebase>http://dnd-http-server.jesuisjo.com/javawebstart</codebase>
+                    <!--<codebase>http://dnd-http-server.jesuisjo.com/jws</codebase>-->
+                    <codebase>http://www.jesuisjo.com/jws</codebase>
                     <jnlp>
                         <mainClass>com.jesuisjo.dndhttpserver.Main</mainClass>
                         <offlineAllowed>true</offlineAllowed>
                         <j2seVersion>1.7+</j2seVersion>
                     </jnlp>
-                    <pack200>true</pack200>
+                    <!--<pack200>true</pack200>-->
                     <!--<sign>-->
                     <!--<keystore>${project.basedir}/src/main/jnlp/ichir.jks</keystore>-->
                     <!--<keypass>mahieddine.ichir</keypass>-->
