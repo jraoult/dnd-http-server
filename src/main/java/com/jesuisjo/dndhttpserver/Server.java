@@ -10,22 +10,27 @@ import com.jesuisjo.dndhttpserver.events.ServerStaticHandlersAdded;
 import com.jesuisjo.dndhttpserver.events.ServerStaticHandlersRemoved;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.NetworkListener;
-import org.glassfish.grizzly.http.server.ServerConfiguration;
 import org.glassfish.grizzly.http.server.StaticHttpHandler;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.HashSet;
+import java.util.Set;
 
+/**
+ * A non thread safe http server facade.
+ *
+ * Should always be accessed by the same thread after instantiation.
+ */
 public class Server {
 
     private static final String LISTENER_NAME = "dnd-http-server-listener";
 
     private final HttpServer m_httpServer = new HttpServer();
     private final EventBus m_eventBus;
-    private final ConcurrentMap<Path, StaticHttpHandler> m_handlerByPath = new ConcurrentHashMap<>();
+    private final Set<Path> m_paths = new HashSet<>();
+    private final StaticHttpHandler m_staticHttpHandler = new StaticHttpHandler();
 
     public Server(EventBus eventBus) {
         m_eventBus = eventBus;
@@ -34,6 +39,7 @@ public class Server {
     public Server start(int port) {
         m_httpServer.addListener(buildListener(port));
         try {
+            m_httpServer.getServerConfiguration().addHttpHandler(m_staticHttpHandler);
             m_httpServer.start();
             m_eventBus.post(new ServerStartSucceed(port));
         } catch (IOException e) {
@@ -56,14 +62,11 @@ public class Server {
     }
 
     public Server addDirectories(Collection<Path> directories) {
-        ServerConfiguration configuration = m_httpServer.getServerConfiguration();
-
         for (Path directory : directories) {
-            StaticHttpHandler httpHandler = new StaticHttpHandler(directory.toString());
 
             // only add the handler if there was no mapping
-            if (m_handlerByPath.putIfAbsent(directory, httpHandler) == null) {
-                configuration.addHttpHandler(httpHandler);
+            if (m_paths.add(directory)) {
+                m_staticHttpHandler.addDocRoot(directory.toFile());
             }
         }
 
@@ -74,10 +77,10 @@ public class Server {
 
 
     public Server removeDirectories(Collection<Path> directories) {
-        ServerConfiguration configuration = m_httpServer.getServerConfiguration();
-
         for (Path directory : directories) {
-            configuration.removeHttpHandler(m_handlerByPath.remove(directory));
+            if (m_paths.remove(directory)) {
+                m_staticHttpHandler.removeDocRoot(directory.toFile());
+            }
         }
 
         m_eventBus.post(new ServerStaticHandlersRemoved(directories));

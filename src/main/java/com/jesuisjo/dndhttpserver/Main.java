@@ -3,7 +3,6 @@ package com.jesuisjo.dndhttpserver;
 import com.google.common.eventbus.AsyncEventBus;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.jesuisjo.dndhttpserver.events.AddWebRootDirectoriesRequest;
 import com.jesuisjo.dndhttpserver.events.ChangeListeningPortRequest;
 import com.jesuisjo.dndhttpserver.events.QuitApplicationRequest;
@@ -24,8 +23,11 @@ public class Main {
 
     public static void main(String[] args) throws IOException, InterruptedException {
 
-        final ExecutorService eventBusExecutor = Executors.newSingleThreadExecutor();
-        EventBus eventBus = new AsyncEventBus(eventBusExecutor);
+        // since the server is not thread safe, this executor is going to be used for all the method calls made onto the
+        // like that we externally enforce single thread scope
+        final ExecutorService backendTasksExecutor = Executors.newSingleThreadExecutor();
+
+        EventBus eventBus = new AsyncEventBus(backendTasksExecutor);
 
         final Server server = new Server(eventBus);
         final Gui gui = new Gui(eventBus);
@@ -50,7 +52,7 @@ public class Main {
             public void onQuitApplicationRequest(QuitApplicationRequest request) {
                 gui.dispose();
                 server.stop();
-                eventBusExecutor.shutdown();
+                backendTasksExecutor.shutdown();
             }
 
             @Subscribe
@@ -93,6 +95,6 @@ public class Main {
             public void run() {
                 server.start(8080);
             }
-        }, MoreExecutors.sameThreadExecutor());
+        }, backendTasksExecutor);
     }
 }
